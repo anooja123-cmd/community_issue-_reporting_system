@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API, authHeader, getAdminToken } from "../services/api";
 
 function StaffManagement() {
   const navigate = useNavigate();
@@ -10,26 +10,26 @@ function StaffManagement() {
 
   useEffect(() => {
     const fetchStaff = async () => {
-      let url = "";
+      try {
+        const token = getAdminToken();
+        if (!token) {
+          navigate("/admin-login");
+          return;
+        }
 
-      if (tab === "pending") {
-        url = "http://localhost:5000/api/admin/pending-authorities";
+        let path = "/admin/pending-authorities";
+        if (tab === "approved") path = "/admin/approved-authorities";
+        if (tab === "rejected") path = "/admin/rejected-authorities";
+
+        const res = await API.get(path, authHeader(token));
+        setStaff(res.data);
+      } catch {
+        setStaff([]);
       }
-
-      if (tab === "approved") {
-        url = "http://localhost:5000/api/admin/approved-authorities";
-      }
-
-      if (tab === "rejected") {
-        url = "http://localhost:5000/api/admin/rejected-authorities";
-      }
-
-      const res = await axios.get(url);
-      setStaff(res.data);
     };
 
     fetchStaff();
-  }, [tab]);
+  }, [tab, navigate]);
 
   return (
     <div>

@@ -1,24 +1,18 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API, authHeader, getAdminToken } from "../services/api";
 
 function AdminDashboard() {
 
   const navigate = useNavigate();
   const [fakeComplaints, setFakeComplaints] = useState([]);
 
-  const fetchFakeComplaints = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/admin/fake-complaints");
-      setFakeComplaints(res.data);
-    } catch (error) {
-      console.error("Error fetching fake complaints", error);
-    }
-  };
-
   const deactivateCitizen = async (citizenId) => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/deactivate-citizen/${citizenId}`);
+      const token = getAdminToken();
+      if (!token) return navigate("/admin-login");
+
+      await API.put(`/admin/deactivate-citizen/${citizenId}`, {}, authHeader(token));
       alert("Citizen deactivated");
     } catch (error) {
       console.error("Error deactivating citizen", error);
@@ -26,8 +20,20 @@ function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchFakeComplaints();
-  }, []);
+    const load = async () => {
+      try {
+        const token = getAdminToken();
+        if (!token) return navigate("/admin-login");
+
+        const res = await API.get("/admin/fake-complaints", authHeader(token));
+        setFakeComplaints(res.data);
+      } catch (error) {
+        console.error("Error fetching fake complaints", error);
+      }
+    };
+
+    load();
+  }, [navigate]);
 
   return (
     <div style={{ padding: "40px" }}>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { API } from "../services/api";
 
 import { Link, useNavigate } from "react-router-dom";
 
@@ -124,14 +124,10 @@ function StaffRegister() {
       sendData.append("password", formData.password);
       sendData.append("certificate", certificate);
 
-      await axios.post(
-        "http://localhost:5000/api/authority/register",
+      await API.post(
+        "/authority/register",
         sendData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
       alert("Registration submitted. Waiting for admin approval.");

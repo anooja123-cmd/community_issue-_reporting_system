@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { API, authHeader, fileUrl, getCitizenToken } from "../services/api";
 
 function CitizenComplaints() {
   const [complaints, setComplaints] = useState([]);
@@ -7,13 +7,11 @@ function CitizenComplaints() {
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = getCitizenToken();
     if (!token) return;
 
-    axios
-      .get("http://localhost:5000/api/complaints", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    API
+      .get("/complaints", authHeader(token))
       .then((res) => {
         setComplaints(res.data);
       })
@@ -47,13 +45,11 @@ function CitizenComplaints() {
                 <button
                   type="button"
                   onClick={() => {
-                    const token = localStorage.getItem("token");
+                    const token = getCitizenToken();
                     if (!token) return;
                     setLoadingDetails(true);
-                    axios
-                      .get(`http://localhost:5000/api/complaints/${c._id}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                      })
+                    API
+                      .get(`/complaints/${c._id}`, authHeader(token))
                       .then((res) => {
                         setSelectedComplaint(res.data);
                       })
@@ -91,7 +87,7 @@ function CitizenComplaints() {
           <p><b>Landmark:</b> {selectedComplaint.landmark}</p>
           {selectedComplaint.image && (
             <img
-              src={`http://localhost:5000/${selectedComplaint.image}`}
+              src={fileUrl(selectedComplaint.image)}
               alt="Complaint"
               width="300"
             />

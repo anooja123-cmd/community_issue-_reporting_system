@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import { API, authHeader, fileUrl, getAdminToken } from "../services/api";
 
 function VerifyStaff() {
   const { id } = useParams();
@@ -10,23 +10,33 @@ function VerifyStaff() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:5000/api/admin/authority/${id}`)
+    const token = getAdminToken();
+    if (!token) {
+      navigate("/admin-login");
+      return;
+    }
+
+    API
+      .get(`/admin/authority/${id}`, authHeader(token))
       .then((res) => {
         setStaff(res.data);
       })
       .catch(() => {
         setError("Staff not found.");
       });
-  }, [id]);
+  }, [id, navigate]);
 
   const approve = async () => {
-    await axios.put(`http://localhost:5000/api/admin/approve-authority/${id}`);
+    const token = getAdminToken();
+    if (!token) return navigate("/admin-login");
+    await API.put(`/admin/approve-authority/${id}`, {}, authHeader(token));
     alert("Staff Approved");
   };
 
   const reject = async () => {
-    await axios.put(`http://localhost:5000/api/admin/reject-authority/${id}`);
+    const token = getAdminToken();
+    if (!token) return navigate("/admin-login");
+    await API.put(`/admin/reject-authority/${id}`, {}, authHeader(token));
     alert("Staff Rejected");
   };
 
@@ -49,13 +59,13 @@ function VerifyStaff() {
       {staff.certificate && (
         <>
           <img
-            src={`http://localhost:5000/${staff.certificate}`}
+            src={fileUrl(staff.certificate)}
             alt="Department License"
             width="300"
           />
           <br />
           <a
-            href={`http://localhost:5000/${staff.certificate}`}
+            href={fileUrl(staff.certificate)}
             target="_blank"
             rel="noreferrer"
           >

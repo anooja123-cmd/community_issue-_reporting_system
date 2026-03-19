@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
+import { API } from "../services/api";
 
 
 function StaffLogin() {
@@ -11,10 +11,7 @@ function StaffLogin() {
     e.preventDefault();
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/authority/login",
-        { email, password }
-      );
+      const res = await API.post("/authority/login", { email, password });
 
       localStorage.setItem("authorityToken", res.data.token);
       if (res.data.authority?.department) {

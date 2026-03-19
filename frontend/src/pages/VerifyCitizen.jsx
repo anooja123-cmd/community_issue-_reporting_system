@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { API, authHeader, fileUrl, getAdminToken } from "../services/api";
 
 function VerifyCitizen() {
 
@@ -11,9 +11,14 @@ function VerifyCitizen() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const token = getAdminToken();
+    if (!token) {
+      navigate("/admin-login");
+      return;
+    }
 
-    axios
-      .get(`http://localhost:5000/api/admin/citizen/${id}`)
+    API
+      .get(`/admin/citizen/${id}`, authHeader(token))
       .then((res) => {
         setUser(res.data);
       })
@@ -21,23 +26,23 @@ function VerifyCitizen() {
         setError("Citizen not found.");
       });
 
-  }, [id]);
+  }, [id, navigate]);
 
   const approve = async () => {
+    const token = getAdminToken();
+    if (!token) return navigate("/admin-login");
 
-    await axios.put(
-      `http://localhost:5000/api/admin/approve-citizen/${id}`
-    );
+    await API.put(`/admin/approve-citizen/${id}`, {}, authHeader(token));
 
     alert("Citizen Approved");
 
   };
 
   const reject = async () => {
+    const token = getAdminToken();
+    if (!token) return navigate("/admin-login");
 
-    await axios.put(
-      `http://localhost:5000/api/admin/reject-citizen/${id}`
-    );
+    await API.put(`/admin/reject-citizen/${id}`, {}, authHeader(token));
 
     alert("Citizen Rejected");
 
@@ -60,7 +65,7 @@ function VerifyCitizen() {
       <p>Status: {user.status}</p>
 
       <img
-        src={`http://localhost:5000/${user.verificationIdImage}`}
+        src={fileUrl(user.verificationIdImage)}
         alt="Citizen ID"
         width="300"
       />

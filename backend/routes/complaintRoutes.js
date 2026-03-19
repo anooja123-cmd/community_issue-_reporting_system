@@ -1,5 +1,6 @@
 const express = require("express");
 const Complaint = require("../models/Complaint");
+const Notification = require("../models/Notification");
 const protect = require("../middleware/authMiddleware");
 const protectStaff = require("../middleware/staffAuth");
 const protectAny = require("../middleware/authAny");
@@ -13,6 +14,7 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
     const {
       title,
       department,
+      panchayath,
       wardNumber,
       streetArea,
       landmark,
@@ -26,6 +28,7 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
     const complaint = await Complaint.create({
       title,
       department,
+      panchayath: panchayath || "Puthucode",
       wardNumber,
       streetArea,
       landmark,
@@ -33,6 +36,14 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
       image: req.file ? req.file.path : "",
       citizenId: req.user._id,
       status: "Pending",
+    });
+
+    // Notify staff of the same department
+    await Notification.create({
+      audience: "staff",
+      department,
+      complaintId: complaint._id,
+      message: `New complaint registered: ${title}`,
     });
 
     res.status(201).json(complaint);
@@ -66,13 +77,21 @@ router.get("/department/list", protectStaff, async (req, res) => {
 // Get complaint details (citizen or staff)
 router.get("/:id", protectAny, async (req, res) => {
   try {
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findById(req.params.id).populate(
+      "citizenId",
+      "name email address phone"
+    );
 
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
     }
 
-    if (req.user && String(complaint.citizenId) !== String(req.user._id)) {
+    const complaintCitizenId =
+      complaint.citizenId && complaint.citizenId._id
+        ? complaint.citizenId._id
+        : complaint.citizenId;
+
+    if (req.user && String(complaintCitizenId) !== String(req.user._id)) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -136,6 +155,13 @@ router.put("/:id/report-fake", protectStaff, async (req, res) => {
     complaint.fakeReason = reason || "";
     complaint.fakeReportedAt = new Date();
     await complaint.save();
+
+    // Notify the citizen who submitted the complaint
+    await Notification.create({
+      citizenId: complaint.citizenId,
+      complaintId: complaint._id,
+      message: "Your complaint is reported as fake.",
+    });
 
     res.json(complaint);
   } catch (error) {

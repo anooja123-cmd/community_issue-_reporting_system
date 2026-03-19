@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import { API, authHeader, fileUrl, getStaffToken } from "../services/api";
 
 function StaffComplaintDetails() {
   const { id } = useParams();
@@ -9,60 +9,51 @@ function StaffComplaintDetails() {
   const [fakeReason, setFakeReason] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("authorityToken");
+    const token = getStaffToken();
     if (!token) {
       navigate("/staff-login");
       return;
     }
 
-    axios
-      .get(`http://localhost:5000/api/complaints/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
+    const fetchComplaint = async () => {
+      try {
+        const res = await API.get(`/complaints/${id}`, authHeader(token));
         setComplaint(res.data);
+
+        // When staff opens a pending complaint, mark it "In Progress"
         if (res.data.status === "Pending") {
-          return axios.put(
-            `http://localhost:5000/api/complaints/${id}/status`,
+          const updated = await API.put(
+            `/complaints/${id}/status`,
             { status: "In Progress" },
-            { headers: { Authorization: `Bearer ${token}` } }
+            authHeader(token)
           );
+          setComplaint(updated.data);
         }
-        return null;
-      })
-      .then((res) => {
-        if (res && res.data) setComplaint(res.data);
-      })
-      .catch(() => {
+      } catch {
         setComplaint(null);
-      });
-  }, [id]);
+      }
+    };
+
+    fetchComplaint();
+  }, [id, navigate]);
 
   const markResolved = () => {
-    const token = localStorage.getItem("authorityToken");
+    const token = getStaffToken();
     if (!token || !complaint) return;
 
-    axios
-      .put(
-        `http://localhost:5000/api/complaints/${id}/status`,
-        { status: "Resolved" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+    API
+      .put(`/complaints/${id}/status`, { status: "Resolved" }, authHeader(token))
       .then(() => {
         navigate("/staff-dashboard");
       });
   };
 
   const reportAsFake = () => {
-    const token = localStorage.getItem("authorityToken");
+    const token = getStaffToken();
     if (!token || !complaint) return;
 
-    axios
-      .put(
-        `http://localhost:5000/api/complaints/${id}/report-fake`,
-        { reason: fakeReason },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+    API
+      .put(`/complaints/${id}/report-fake`, { reason: fakeReason }, authHeader(token))
       .then((res) => {
         setComplaint(res.data);
         navigate("/staff-dashboard");
@@ -70,29 +61,39 @@ function StaffComplaintDetails() {
   };
 
   const printComplaint = () => {
-    if (!complaint) return;
-    const win = window.open("", "_blank");
-    win.document.write(`<h2>Complaint Details</h2>`);
-    win.document.write(`<p>Title: ${complaint.title}</p>`);
-    win.document.write(`<p>Description: ${complaint.description}</p>`);
-    win.document.write(`<p>Department: ${complaint.department}</p>`);
-    win.document.write(`<p>Ward Number: ${complaint.wardNumber}</p>`);
-    win.document.write(`<p>Street/Area: ${complaint.streetArea}</p>`);
-    win.document.write(`<p>Landmark: ${complaint.landmark}</p>`);
-    win.document.write(`<p>Status: ${complaint.status}</p>`);
-    win.document.write(`<p>Date: ${complaint.date}</p>`);
-    win.document.close();
-    win.print();
+    // Browser print dialog (user can "Save as PDF")
+    window.print();
   };
 
   if (!complaint) return <p>Complaint not found.</p>;
 
+  const citizenName = complaint.citizenId?.name || "";
+  const citizenEmail = complaint.citizenId?.email || "";
+  const citizenAddress = complaint.citizenId?.address || "";
+
   return (
     <div style={{ padding: "20px" }}>
+      <style>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
       <h2>Complaint Details</h2>
+
+      <h3>Citizen Registered Details</h3>
+      {citizenName && <p><b>Name:</b> {citizenName}</p>}
+      {citizenEmail && <p><b>Email:</b> {citizenEmail}</p>}
+      <p><b>Registered Address:</b> {citizenAddress || "Not provided"}</p>
+
+      <hr />
+
+      <h3>Submitted Complaint</h3>
       <p><b>Title:</b> {complaint.title}</p>
       <p><b>Description:</b> {complaint.description}</p>
       <p><b>Department:</b> {complaint.department}</p>
+      {complaint.panchayath && <p><b>Panchayath:</b> {complaint.panchayath}</p>}
       <p><b>Ward Number:</b> {complaint.wardNumber}</p>
       <p><b>Street / Area:</b> {complaint.streetArea}</p>
       <p><b>Landmark:</b> {complaint.landmark}</p>
@@ -103,24 +104,26 @@ function StaffComplaintDetails() {
       )}
 
       {complaint.image && (
-        <img src={`http://localhost:5000/${complaint.image}`} alt="Complaint" width="300" />
+        <img src={fileUrl(complaint.image)} alt="Complaint" width="300" />
       )}
 
       <br /><br />
 
-      <button onClick={markResolved}>Resolved</button>
-      <button onClick={printComplaint} style={{ marginLeft: "10px" }}>
-        Print Complaint
-      </button>
-      <br /><br />
-      <textarea
-        placeholder="Reason for reporting as fake (optional)"
-        rows="3"
-        value={fakeReason}
-        onChange={(e) => setFakeReason(e.target.value)}
-      />
-      <br />
-      <button onClick={reportAsFake}>Report as Fake</button>
+      <div className="no-print">
+        <button onClick={markResolved}>Resolved</button>
+        <button onClick={printComplaint} style={{ marginLeft: "10px" }}>
+          Print Complaint
+        </button>
+        <br /><br />
+        <textarea
+          placeholder="Reason for reporting as fake (optional)"
+          rows="3"
+          value={fakeReason}
+          onChange={(e) => setFakeReason(e.target.value)}
+        />
+        <br />
+        <button onClick={reportAsFake}>Report as Fake</button>
+      </div>
     </div>
   );
 }

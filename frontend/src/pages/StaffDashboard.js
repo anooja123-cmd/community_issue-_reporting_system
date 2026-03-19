@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { API, authHeader, getStaffToken } from "../services/api";
 
 function StaffDashboard() {
   const navigate = useNavigate();
@@ -13,37 +13,46 @@ function StaffDashboard() {
   const notificationRef = useRef(null);
   const profileRef = useRef(null);
 
+  const fetchStaffNotifications = async () => {
+    const token = getStaffToken();
+    if (!token) return;
+
+    try {
+      const res = await API.get("/notifications/staff", authHeader(token));
+      const list = res.data || [];
+      setNotifications(
+        list.map((n) => ({
+          id: n._id,
+          complaintId: n.complaintId,
+          message: n.message,
+          date: new Date(n.createdAt).toLocaleDateString(),
+        }))
+      );
+    } catch {
+      setNotifications([]);
+    }
+  };
+
   useEffect(() => {
-    const token = localStorage.getItem("authorityToken");
+    const token = getStaffToken();
     if (!token) {
       navigate("/staff-login");
       return;
     }
 
-    axios
-      .get("http://localhost:5000/api/complaints/department/list", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    API
+      .get("/complaints/department/list", authHeader(token))
       .then((res) => {
         const list = res.data || [];
         setPendingComplaints(list.filter((c) => c.status !== "Resolved"));
         setResolvedComplaints(list.filter((c) => c.status === "Resolved"));
-        setNotifications(
-          list
-            .filter((c) => c.status === "Pending")
-            .map((c) => ({
-              id: c._id,
-              complaintId: c._id,
-              message: `New complaint: ${c.title}`,
-              date: new Date(c.createdAt).toLocaleDateString(),
-            }))
-        );
+        fetchStaffNotifications();
       })
       .catch(() => {
         setPendingComplaints([]);
         setResolvedComplaints([]);
       });
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -59,8 +68,10 @@ function StaffDashboard() {
   }, []);
 
   const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
+    const next = !showNotifications;
+    setShowNotifications(next);
     setShowProfileMenu(false);
+    if (next) fetchStaffNotifications();
   };
 
   const toggleProfileMenu = () => {

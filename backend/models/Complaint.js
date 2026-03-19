@@ -4,6 +4,7 @@ const complaintSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     department: { type: String, required: true },
+    panchayath: { type: String, default: "Puthucode" },
     wardNumber: { type: String, required: true },
     streetArea: { type: String, required: true },
     landmark: { type: String, required: true },
@@ -11,8 +12,12 @@ const complaintSchema = new mongoose.Schema(
     image: { type: String }, // stored file path
     status: {
       type: String,
-      enum: ["Pending", "In Progress", "Resolved", "Reported as Fake"],
+      enum: ["Pending", "In Progress", "Resolved", "Rejected", "Reported as Fake"],
       default: "Pending",
+    },
+    assignedStaff: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Authority",
     },
     reportedAsFakeBy: {
       type: mongoose.Schema.Types.ObjectId,

@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const adminRoutes = require("./routes/adminRoutes");
 const staffRoutes = require("./routes/staffRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/authority", staffRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/complaints", require("./routes/complaintRoutes"));
+app.use("/api/notifications", notificationRoutes);
 app.use("/uploads", express.static("uploads"));
 
 mongoose

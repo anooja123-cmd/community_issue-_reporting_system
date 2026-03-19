@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 // 🔹 CITIZEN REGISTER
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, phone, verificationIdType } = req.body;
+    const { name, email, password, phone, address, verificationIdType } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -18,6 +18,7 @@ exports.registerUser = async (req, res) => {
       name,
       email,
       phone,
+      address,
       password: hashedPassword,
       verificationIdType, // ✅ ADD THIS (VERY IMPORTANT)
       verificationIdImage: req.file ? req.file.path : "",

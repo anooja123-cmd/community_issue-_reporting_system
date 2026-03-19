@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { API } from "../services/api";
 
 function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -9,13 +9,7 @@ function AdminLogin() {
     e.preventDefault();
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/admin/login",
-        {
-          email,
-          password,
-        }
-      );
+      const res = await API.post("/admin/login", { email, password });
 
       localStorage.setItem("adminToken", res.data.token);
       alert("Admin login successful");

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API, authHeader, getAdminToken } from "../services/api";
 
 function CitizenManagement() {
 
@@ -9,30 +9,28 @@ function CitizenManagement() {
   const [tab, setTab] = useState("pending");
   const [citizens, setCitizens] = useState([]);
 
-  const fetchCitizens = async () => {
-
-    let url = "";
-
-    if (tab === "pending") {
-      url = "http://localhost:5000/api/admin/pending-citizens";
-    }
-
-    if (tab === "approved") {
-      url = "http://localhost:5000/api/admin/approved-citizens";
-    }
-
-    if (tab === "rejected") {
-      url = "http://localhost:5000/api/admin/rejected-citizens";
-    }
-
-    const res = await axios.get(url);
-
-    setCitizens(res.data);
-  };
-
   useEffect(() => {
+    const fetchCitizens = async () => {
+      try {
+        const token = getAdminToken();
+        if (!token) {
+          navigate("/admin-login");
+          return;
+        }
+
+        let path = "/admin/pending-citizens";
+        if (tab === "approved") path = "/admin/approved-citizens";
+        if (tab === "rejected") path = "/admin/rejected-citizens";
+
+        const res = await API.get(path, authHeader(token));
+        setCitizens(res.data);
+      } catch {
+        setCitizens([]);
+      }
+    };
+
     fetchCitizens();
-  }, [tab]);
+  }, [tab, navigate]);
 
   return (
 

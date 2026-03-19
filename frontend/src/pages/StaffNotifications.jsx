@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import axios from "axios";
+import { API, authHeader, getStaffToken } from "../services/api";
 
 function StaffNotifications() {
   const location = useLocation();
@@ -9,15 +9,13 @@ function StaffNotifications() {
   const [complaint, setComplaint] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("authorityToken");
+    const token = getStaffToken();
     const params = new URLSearchParams(location.search);
     const complaintId = params.get("complaintId");
 
     if (complaintId && token) {
-      axios
-        .get(`http://localhost:5000/api/complaints/${complaintId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+      API
+        .get(`/complaints/${complaintId}`, authHeader(token))
         .then((res) => {
           setComplaint(res.data);
           setSelected({
@@ -31,7 +29,7 @@ function StaffNotifications() {
     }
 
     setNotifications([]);
-  }, []);
+  }, [location.search]);
 
   return (
     <div style={{ padding: "20px" }}>

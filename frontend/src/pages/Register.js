@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API } from "../services/api";
 
 function Register() {
   const navigate = useNavigate();
@@ -8,6 +8,7 @@ function Register() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    address: "",
     password: "",
     confirmPassword: "",
     verificationIdType: "Aadhar",
@@ -36,20 +37,15 @@ function Register() {
     const data = new FormData();
     data.append("name", formData.name);
     data.append("email", formData.email);
+    data.append("address", formData.address);
     data.append("password", formData.password);
     data.append("verificationIdType", formData.verificationIdType);
     data.append("verificationIdImage", verificationIdImage);
 
     try {
-      await axios.post(
-        "http://localhost:5000/api/auth/signup",
-        data,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      await API.post("/auth/signup", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       alert("Signup successful. Await admin approval.");
       navigate("/login");
@@ -77,6 +73,14 @@ function Register() {
           type="email"
           name="email"
           placeholder="Email"
+          onChange={handleChange}
+          required
+        />
+
+        <input
+          type="text"
+          name="address"
+          placeholder="Address"
           onChange={handleChange}
           required
         />
